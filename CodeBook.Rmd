@@ -1,0 +1,113 @@
+# Getting and Cleaning Data CodeBook
+
+This is the code book for the Data and Clening Course Project.
+
+### About de Original Data Set
+
+The original Data Set Consist of the record of experiments that have been carried out with a group of 30 volunteers within an age bracket of 19-48 years. Each person performed six activities (WALKING, WALKING_UPSTAIRS, WALKING_DOWNSTAIRS, SITTING, STANDING, LAYING) wearing a smartphone (Samsung Galaxy S II) on the waist. Using its embedded accelerometer and gyroscope, we captured 3-axial linear acceleration and 3-axial angular velocity at a constant rate of 50Hz. The experiments have been video-recorded to label the data manually. The obtained dataset has been randomly partitioned into two sets, where 70% of the volunteers was selected for generating the training data and 30% the test data.
+
+The sensor signals (accelerometer and gyroscope) were pre-processed by applying noise filters and then sampled in fixed-width sliding windows of 2.56 sec and 50% overlap (128 readings/window). The sensor acceleration signal, which has gravitational and body motion components, was separated using a Butterworth low-pass filter into body acceleration and gravity. The gravitational force is assumed to have only low frequency components, therefore a filter with 0.3 Hz cutoff frequency was used. From each window, a vector of features was obtained by calculating variables from the time and frequency domain.
+
+The origin files can be found in the following link:
+
+[Data for the project](https://d396qusza40orc.cloudfront.net/getdata%2Fprojectfiles%2FUCI%20HAR%20Dataset.zip)
+
+### About the run_analysis.R script
+
+The run_analisis.R script takes the Original Data Set and creates a tidydata.txt file doing the next steps:
+
+#### 1. Downloads the Data by checkig if the data already exists.It also creates a new folder and unzips it if the folder "UCI HAR Dataset" does not exists.
+
+```{r}
+# Checking if the file already exists.
+if (!file.exists(Datos)){
+  fileURL <- "https://d396qusza40orc.cloudfront.net/getdata%2Fprojectfiles%2FUCI%20HAR%20Dataset.zip"
+  download.file(fileURL, Datos, method="curl")
+}
+# Checking if folder already exists
+if (!file.exists("UCI HAR Dataset")) { 
+  unzip(Datos) 
+}
+```
+
+#### 2. Reads the following files by using the read.table function: features,x_train,x_test,activities,subject_test,subject_train,y_test, y_train.
+
+```{r}
+features<-read.table("UCI HAR Dataset/features.txt", col.names=c("n","functions"))
+
+x_train <- read.table("UCI HAR Dataset/train/X_train.txt", col.names = features$functions)
+x_test <- read.table("UCI HAR Dataset/test/X_test.txt", col.names = features$functions)
+
+activities <- read.table("UCI HAR Dataset/activity_labels.txt", col.names = c("code", "activity"))
+subject_test <- read.table("UCI HAR Dataset/test/subject_test.txt", col.names = "subject")
+
+y_test <- read.table("UCI HAR Dataset/test/y_test.txt", col.names = "code")
+subject_train <- read.table("UCI HAR Dataset/train/subject_train.txt", col.names = "subject")
+y_train <- read.table("UCI HAR Dataset/train/y_train.txt", col.names = "code")
+```
+
+#### 3.Fullfilts the following instruction: Merge the training and the test sets to create one data set.
+
+```{r}
+
+###Creting a new table with x_train and x_test. the data will be added as rows
+X<-rbind(x_test,x_train)
+###Creting a new table with y_train and y_test. the data will be added as rows
+Y<-rbind(y_test,y_train)
+###Creting a new table with subject_train and subject_test. The data will be added as rows
+Subject<-rbind(subject_test,subject_train)
+###Creating a new table with X,Y and subject.The data will be added by columns.
+Table<-cbind(X,Y,Subject)
+```
+
+#### 4.Fullfilts the following instruction:Extracts only the measurements on the mean and standard deviation for each measurement.
+
+```{r}
+##Instaling the library dplyr
+library(dplyr)
+##Creating a new table with the subject column, the code column and columns containing mean or std in the name
+Tidy<-select(Table,subject, code, contains("mean"), contains("std"))
+
+```
+
+#### 5.Fullfilts the following instruction:Uses descriptive activity names to name the activities in the data set.
+
+```{r}
+##Change the numbers in the code column to the name of the corresponding activity. Example if the code says 2 the corresponding name is WALKING_UPSTAIRS
+Tidy$code<-activities[Tidy$code,"activity"]
+
+```
+
+#### 6.Fullfilts the following instruction:Appropriately labels the data set with descriptive variable names. 
+```{r}
+##Checking the names
+names(Tidy)
+##Using a new variable just to be safe. 
+Tidy0<-Tidy
+##Renaming the code column to Activity, substituting all the first t to time, 
+##all the first f to freccuancy, all the Acc to Accelerometer, all the Gyro to Gyroscope,
+##all the Mag to Magnitude and all the BodyBody to Body.
+Tidy0<-rename(Tidy0,"Activity"="code")
+names(Tidy0)<-gsub("^t", "Time",names(Tidy0))
+names(Tidy0)<-gsub("^f", "Frequency",names(Tidy0))
+names(Tidy0)<-gsub("Acc", "Accelerometer", names(Tidy0))
+names(Tidy0)<-gsub("Gyro", "Gyroscope", names(Tidy0))
+names(Tidy0)<-gsub("Mag", "Magnitude", names(Tidy0))
+names(Tidy0)<-gsub("BodyBody", "Body", names(Tidy0))
+
+```
+
+#### 7.Fullfilts the following instruction: From the data set in step 4, create a second, independent tidy data set with the average of each variable for each  activity and each subject. 
+```{r}
+##Creting the groups for Activity and subject
+FinalTidy<-Tidy0%>%group_by(Activity,subject)
+##Making the summary for all the variables
+FinalTidyS<- summarise(FinalTidy,across(everything(),list(mean)))
+
+```
+
+#### 8.Creating the final file
+```{r}
+write.table(FinalTidyS, file = "tidydata.txt",row.name=FALSE)
+```
+ The resulting file has 188 obs ob 88 varibles. 
