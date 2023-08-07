@@ -8,6 +8,7 @@
 
 ###The files that you will find in this project are the following:
 
+-UCI HAR Dataset: The original Data.
 -Code Book.md: In this file you will be able to find all the variables, the data, and any transformations or work performed to clean up the data.
 
 -run_analysis.R: In this file you will find the scrip that makes possible to transform the original Data to a Tidy Data. The script does the following:
